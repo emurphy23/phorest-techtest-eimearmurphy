@@ -8,6 +8,7 @@ import json
 from datetime import datetime, date
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
+server = app.server
 
 navbar = html.Div([
     dbc.Navbar(
