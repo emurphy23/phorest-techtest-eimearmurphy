@@ -8,6 +8,7 @@ import json
 from datetime import datetime, date
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
+app.title = "Phorest Salon Software"
 server = app.server
 
 navbar = html.Div([
@@ -48,7 +49,9 @@ body = html.Div([
     html.Div(id='voucher-success'),
     html.Br(),
     html.Div(id="refresh")
-], style={'position': 'relative', 'left': '20px', 'top': '2px'})
+],
+    style={'position': 'relative', 'left': '20px', 'top': '2px'}
+)
 
 app.layout = html.Div([
     navbar,
@@ -73,7 +76,8 @@ def set_client_search(search_type):
                 ]
             ),
         ],
-            inline=True)
+            inline=True
+        )
     else:
         return dbc.Form([
             dbc.FormGroup(
@@ -87,7 +91,8 @@ def set_client_search(search_type):
                 ]
             ),
         ],
-            inline=True)
+            inline=True
+        )
 
 
 client_ids = []
@@ -105,6 +110,7 @@ def get_client(n_clicks, search):
 
     if n_clicks is not None and search is not None:
         parameters = {}
+        # get value of email or phone number
         if search['props']['children'][0]['props']['children'][1]['props']['id'] == 'email' and 'value' in \
                 search['props']['children'][0]['props']['children'][1]['props']:
             parameters["email"] = (search['props']['children'][0]['props']['children'][1]['props']['value'])
@@ -117,21 +123,22 @@ def get_client(n_clicks, search):
                 'https://api-gateway-dev.phorest.com/third-party-api-server/api/business/eTC3QY5W3p_HmGHezKfxJw'
                 '/client?size=20',
                 params=parameters, auth=('global/cloud@apiexamples.com', 'VMlRo/eh+Xd8M~l'))
-
+            # if a search comes back with a result
             if response.json()['page']['totalElements'] > 0:
                 clients = response.json()['_embedded']['clients']
 
                 for c in clients:
-                    id = c['clientId']
+                    c_id = c['clientId']
                     name = c['firstName'] + " " + c['lastName']
                     email = c['email']
-                    client_ids.append(id)
+                    client_ids.append(c_id)
                     return dbc.FormGroup(
                         [
-                            dbc.Label(f"Client ID: {id}: {name}, ({email}) "),
+                            dbc.Label(f"Client ID: {c_id}: {name}, ({email}) "),
                             html.Br(),
                             dbc.Label(f"Input voucher amount (€)", style={'font-weight': 'bold'}),
-                            dbc.Input(placeholder="Enter voucher amount", type="number", step=0.01, style={'width': '50%'})
+                            dbc.Input(placeholder="Enter voucher amount", type="number", step=0.01,
+                                      style={'width': '50%'})
                         ]
                     ), {'display': 'block'}
             else:
@@ -143,6 +150,7 @@ def get_client(n_clicks, search):
 
 
 now = datetime.now()
+
 
 # function to calculate expiry date based on issue date
 def addYears(d, years):
