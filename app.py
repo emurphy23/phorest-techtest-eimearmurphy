@@ -41,9 +41,10 @@ body = html.Div([
         ],
         value='email'
     ),
+    html.Br(),
     html.Div(id='display-selected-search'),
     html.Br(),
-    dbc.Button("Submit", color="primary", id="submit-button"),
+    dbc.Button("Search", color="primary", id="submit-button"),
     html.Div(id='voucher-amount'),
     dbc.Button("Submit", color="primary", id="submit-amount-button", style={'display': 'none'}),
     html.Div(id='voucher-success'),
@@ -59,43 +60,50 @@ app.layout = html.Div([
 ])
 
 
+# function to calculate expiry date based on issue date
+def add_years(d, years):
+    try:
+        # Return same day of the current year
+        return d.replace(year=d.year + years)
+    except ValueError:
+        # If not same day, it will return other
+        return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
+
+
+# empty list to store all clientids found
+client_ids = []
+
+# get date of voucher issue
+now = datetime.now()
+
+
 @app.callback(
     Output('display-selected-search', 'children'),
     Input('search-type', 'value'))
 def set_client_search(search_type):
     if search_type == 'email':
-        return dbc.Form([
-            dbc.FormGroup(
-                [
-                    dbc.Label("Email: ", className="mr-2"),
-                    dbc.Input(
-                        type="email",
-                        id="email",
-                        placeholder="Enter email address",
-                    ),
-                ]
-            ),
-        ],
-            inline=True
-        )
+        label = dbc.Label("Email: ", className="mr-2")
+        input = dbc.Input(
+            type="email",
+            id="email",
+            placeholder="Enter email address")
     else:
-        return dbc.Form([
-            dbc.FormGroup(
-                [
-                    dbc.Label("Phone: ", className="mr-2"),
-                    dbc.Input(
-                        type="text",
-                        id="phone-number",
-                        placeholder="Enter phone number",
-                    ),
-                ]
-            ),
-        ],
-            inline=True
+        label = dbc.Label("Phone: ", className="mr-2")
+        input = dbc.Input(
+            type="text",
+            id="phone-number",
+            placeholder="Enter phone number"
         )
-
-
-client_ids = []
+    return dbc.Form([
+        dbc.FormGroup(
+            [
+                label,
+                input
+            ]
+        ),
+    ],
+        inline=True
+    )
 
 
 @app.callback(Output('voucher-amount', 'children'),
@@ -149,25 +157,6 @@ def get_client(n_clicks, search):
                 'display': 'none'}
 
 
-now = datetime.now()
-
-
-# function to calculate expiry date based on issue date
-def addYears(d, years):
-    try:
-        # Return same day of the current year
-        return d.replace(year=d.year + years)
-    except ValueError:
-        # If not same day, it will return other
-        return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
-
-
-def jprint(obj):
-    # create a formatted string of the Python JSON object
-    text = json.dumps(obj, sort_keys=True, indent=4)
-    return text
-
-
 @app.callback(Output('voucher-success', 'children'),
               Output('refresh', 'children'),
               Input('submit-amount-button', 'n_clicks'),
@@ -180,7 +169,7 @@ def create_voucher(n_clicks, amount):
                 'Accept': '*/*'
             }
             voucher_params = {"creatingBranchId": "SE-J0emUgQnya14mOGdQSw",
-                              "expiryDate": addYears(now, 1).strftime("%Y-%m-%dT%H:%M:%S"),
+                              "expiryDate": add_years(now, 1).strftime("%Y-%m-%dT%H:%M:%S"),
                               "issueDate": now.strftime("%Y-%m-%dT%H:%M:%S"),
                               "originalBalance": amount['props']['children'][3]['props']['value'],
                               "clientId": client
@@ -189,7 +178,7 @@ def create_voucher(n_clicks, amount):
             post_voucher = requests.post(
                 'https://api-gateway-dev.phorest.com/third-party-api-server/api/business/eTC3QY5W3p_HmGHezKfxJw/voucher',
                 json=voucher_params, headers=headers, auth=('global/cloud@apiexamples.com', 'VMlRo/eh+Xd8M~l'))
-
+            print(post_voucher)
             card = dbc.Card(
                 [
                     dbc.CardHeader(f"Serial Number: {post_voucher.json()['serialNumber']}"),
@@ -208,7 +197,8 @@ def create_voucher(n_clicks, amount):
                 outline=True
             )
             return [html.Br(), dbc.Alert(
-                f"A voucher for €{voucher_params['originalBalance']} for Client with ID '{client}' has been created successfully!",
+                f"A voucher for €{voucher_params['originalBalance']} for Client with ID '{client}' has been created "
+                f"successfully!",
                 color="success", dismissable=True, style={'width': '700px'}), card], html.A(
                 dbc.Button('Search Again', size="lg", outline=True, color="primary", className="mr-1"), href='/')
     else:
